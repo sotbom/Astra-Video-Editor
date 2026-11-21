@@ -257,3 +257,7 @@ Completed static-mask editing and cached still-preview scope. Final diagnostic r
   .gitattributes only; preserve its history. Nested GitHub Desktop checkout left untouched.
 - No second Windows PC available. Clean-machine testing remains pending; do not claim it passed.
 - Binary redistribution audit, frozen export, installer and release automation remain incomplete.
+- Source push succeeded: main commit 80610ea, preserving remote initial commit 5511792.
+  No binaries/model weights uploaded and no GitHub release created. License/documentation
+  checks: Ruff passed; 17 project/media tests passed. Normalized legacy line endings in
+  effects_dialog.py and removed extra EOF blank lines after the initial source snapshot.
