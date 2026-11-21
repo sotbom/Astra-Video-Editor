@@ -1,0 +1,13 @@
+.venv/
+.venv-ai/
+models/*/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+tools/
+tests/fixtures/generated/
+artifacts/
+*.log
+build/
+dist/
+/Astra Video Editor/

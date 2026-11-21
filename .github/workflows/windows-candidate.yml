@@ -1,0 +1,23 @@
+name: Windows candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install pinned dependencies
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python.exe -m pip install -r requirements-lock.txt -r requirements-build-lock.txt
+      - name: Static verification
+        shell: pwsh
+        run: .venv/Scripts/python.exe -m compileall -q app packaging
+      # FFmpeg provenance, clean-machine qualification and license approval must precede
+      # a distributable build job. No upload or publication is enabled here.
