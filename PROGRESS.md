@@ -261,3 +261,10 @@ Completed static-mask editing and cached still-preview scope. Final diagnostic r
   No binaries/model weights uploaded and no GitHub release created. License/documentation
   checks: Ruff passed; 17 project/media tests passed. Normalized legacy line endings in
   effects_dialog.py and removed extra EOF blank lines after the initial source snapshot.
+
+## Phase 8 Actions test build
+- Replaced the syntax-only workflow with .github/workflows/build.yml: manual Windows x64
+  build, pinned dependencies, checksum-verified FFmpeg, core/render tests, frozen startup
+  check, portable artifact upload and optional draft prerelease with ZIP/checksum.
+- No public release is automatically published. This workflow has not yet run on GitHub;
+  hosted-run success and manual downloaded-EXE testing remain unverified.

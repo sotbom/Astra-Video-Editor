@@ -24,3 +24,13 @@ The build script restricts PATH to the project interpreter and Windows directori
 PyInstaller runs, then restores the caller PATH. This prevents collection of same-named
 native DLLs from unrelated installed tools. Use --clean to invalidate dependency analysis.
 The first failed candidate contained Poppler's ICU DLL from the host application's PATH.
+
+## Download a GitHub Actions test build
+Open Actions > Build Windows test release > Run workflow on main. Leave the draft-release
+option checked to attach the ZIP to a draft prerelease. After a green run, download the
+Astra-Windows-test artifact from the run page, or open the draft under Releases as the owner.
+Extract the artifact ZIP, then extract the portable ZIP inside it. Run AstraVideoEditor.exe
+with the entire _internal directory beside it. No Python installation is required.
+The build is unsigned; AI dependencies and models are separate. Keep the release as a draft
+until redistribution checks are complete. The workflow performs core/render tests and a
+frozen main-window startup check, not a complete clean-PC playback/export qualification.

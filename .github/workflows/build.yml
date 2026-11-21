@@ -1,0 +1,89 @@
+name: Build Windows test release
+on:
+  workflow_dispatch:
+    inputs:
+      create_draft_release:
+        description: Also create a draft prerelease with the test ZIP
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          architecture: x64
+      - name: Install pinned dependencies and verified FFmpeg
+        run: |
+          ./scripts/setup_dev.ps1 -DownloadFFmpeg
+          .venv/Scripts/python.exe -m pip install -r requirements-build-lock.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Build dependency installation failed' }
+      - name: Check source and core media behavior
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          .venv/Scripts/python.exe -m ruff check app tests packaging
+          if ($LASTEXITCODE -ne 0) { throw 'Lint failed' }
+          .venv/Scripts/python.exe -m pytest tests/test_project.py tests/test_media.py tests/test_render.py -q --junitxml=artifacts/ci-tests.xml
+          if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
+      - name: Build portable application
+        run: ./scripts/build_portable.ps1
+      - name: Check frozen startup
+        run: |
+          $env:ASTRA_DATA_DIR = Join-Path $env:RUNNER_TEMP 'astra-smoke'
+          $exe = (Resolve-Path 'artifacts/portable/AstraVideoEditor/AstraVideoEditor.exe').Path
+          $process = Start-Process -FilePath $exe -PassThru
+          try {
+            Start-Sleep -Seconds 12
+            $process.Refresh()
+            if ($process.HasExited) { throw "Frozen app exited early: $($process.ExitCode)" }
+            if ($process.MainWindowTitle -notlike '*Astra Video Editor*') {
+              throw "Frozen startup did not show the editor: $($process.MainWindowTitle)"
+            }
+          } finally {
+            if (-not $process.HasExited) { Stop-Process -Id $process.Id }
+          }
+      - name: Upload portable ZIP and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astra-Windows-test-${{ github.run_number }}
+          path: |
+            artifacts/AstraVideoEditor-portable-candidate.zip
+            artifacts/portable-checksum.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Create draft prerelease
+        if: inputs.create_draft_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_SHA: ${{ github.sha }}
+          BUILD_TAG: test-${{ github.run_number }}-${{ github.run_attempt }}
+        run: |
+          @'
+          Windows x64 test candidate, not a stable release.
+          Extract the entire portable ZIP and run AstraVideoEditor.exe. Keep _internal beside it.
+          Python is not required. AI runtime/model weights are not bundled.
+          Unsigned build; installer and clean-PC qualification remain pending.
+          Third-party redistribution audit is incomplete. Keep this release as a draft until reviewed.
+          '@ | Set-Content -Encoding utf8 artifacts/release-notes.md
+          gh release create $env:BUILD_TAG --target $env:BUILD_SHA --draft --prerelease --title "Astra Windows test $env:BUILD_TAG" --notes-file artifacts/release-notes.md artifacts/AstraVideoEditor-portable-candidate.zip artifacts/portable-checksum.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release creation failed; download the Actions artifact instead' }
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astra-build-diagnostics-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            artifacts/ci-tests.xml
+            artifacts/build/AstraVideoEditor/warn-AstraVideoEditor.txt
+          if-no-files-found: ignore
